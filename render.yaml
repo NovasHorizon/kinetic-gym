@@ -28,7 +28,7 @@ services:
       - key: DB_PORT
         sync: false
       - key: DB_DATABASE
-        value: defaultdb
+        value: kinetic_gym
       - key: DB_USERNAME
         value: avnadmin
       - key: DB_PASSWORD
