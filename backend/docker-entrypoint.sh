@@ -22,7 +22,13 @@ if [ -n "$MYSQL_SSL_CA_PEM" ]; then
   export MYSQL_ATTR_SSL_CA=/tmp/mysql-ca.pem
 fi
 
-php artisan migrate --force
+# The database may still be starting (e.g. MySQL restarts once after first boot), so retry for ~30 s.
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  php artisan migrate --force && break
+  [ "$attempt" = 10 ] && exit 1
+  echo "Database not ready (attempt $attempt), retrying in 3 s..."
+  sleep 3
+done
 php artisan db:seed --force
 
 # Create the first staff login from env vars (skipped if it already exists).
