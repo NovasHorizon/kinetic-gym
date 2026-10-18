@@ -1,0 +1,4 @@
+# Local-only files
+*.local.txt
+.DS_Store
+Thumbs.db

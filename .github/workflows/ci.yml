@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Laravel tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+      - name: Code style (Pint)
+        run: vendor/bin/pint --test
+      - name: PHPUnit
+        run: php artisan test
+
+  frontend:
+    name: React build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  docker:
+    name: Docker build and start-up check
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    env:
+      # Throwaway key for this CI run only
+      APP_KEY: base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build and start MySQL, API and website
+        run: docker compose up -d --build --wait
+      - name: API answers with seeded data
+        run: |
+          for i in $(seq 1 30); do
+            curl -fs http://localhost:8000/api/plans && exit 0
+            sleep 2
+          done
+          docker compose logs api
+          exit 1
+      - name: Website serves and proxies the API
+        run: |
+          curl -fs http://localhost:8080/ > /dev/null
+          curl -fs http://localhost:8080/api/schedule > /dev/null
+          curl -fs http://localhost:8000/admin/login > /dev/null

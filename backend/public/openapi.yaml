@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: Kinetic Gym API
+  version: 1.0.0
+  description: |
+    REST API for the Kinetic gym website (Laravel 12 + MySQL).
+    Log in with `POST /auth/login`, then click **Authorize** and paste the token.
+servers:
+  - url: /api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Sanctum token returned by /auth/register or /auth/login
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string, example: Please log in to continue. }
+    Plan:
+      type: object
+      properties:
+        id: { type: integer, example: 2 }
+        name: { type: string, example: Pro }
+        description: { type: string }
+        monthly_price: { type: integer, description: Rupees per month, example: 2999 }
+        yearly_price: { type: integer, description: Rupees per month when billed yearly, example: 2399 }
+        features: { type: array, items: { type: string } }
+        is_featured: { type: boolean }
+    Trainer:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string, example: Rohan Deshmukh }
+        specialty: { type: string }
+        experience_years: { type: integer }
+        photo_url: { type: string, format: uri }
+    ClassSlot:
+      type: object
+      properties:
+        id: { type: integer }
+        day_of_week: { type: integer, description: 1 = Monday ... 7 = Sunday }
+        start_time: { type: string, example: '06:00' }
+        capacity: { type: integer }
+        class_name: { type: string, example: HIIT Burn }
+        level: { type: string, enum: [Beginner, Intermediate, All levels] }
+        duration_min: { type: integer }
+        trainer_name: { type: string }
+        next_date: { type: string, format: date, description: Date of the next session }
+        spots_left: { type: integer, description: Free spots in the next session }
+    Member:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, example: '9876543210' }
+        created_at: { type: string, example: '2026-10-17 09:04:44' }
+        plan_id: { type: integer, nullable: true }
+        plan_name: { type: string, nullable: true }
+        monthly_price: { type: integer, nullable: true }
+    Session:
+      type: object
+      properties:
+        token: { type: string }
+        member: { $ref: '#/components/schemas/Member' }
+    Booking:
+      type: object
+      properties:
+        id: { type: integer }
+        schedule_id: { type: integer }
+        class_date: { type: string, format: date }
+        start_time: { type: string, example: '06:00' }
+        class_name: { type: string }
+        duration_min: { type: integer }
+        trainer_name: { type: string }
+  responses:
+    Unauthorized:
+      description: Missing or expired token
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    ValidationError:
+      description: Invalid input (first problem in `error`, all problems in `errors`)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+paths:
+  /health:
+    get:
+      tags: [Public]
+      summary: Health check
+      responses: { '200': { description: OK } }
+  /plans:
+    get:
+      tags: [Public]
+      summary: Membership plans
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Plan' } } } } }
+  /trainers:
+    get:
+      tags: [Public]
+      summary: Coaches
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Trainer' } } } } }
+  /schedule:
+    get:
+      tags: [Public]
+      summary: Weekly class timetable with spots left for each next session
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ClassSlot' } } } } }
+  /enquiries:
+    post:
+      tags: [Public]
+      summary: Request a free trial (rate limited to 5 per minute)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, goal, plan, preferred_time]
+              properties:
+                name: { type: string, example: Asha Rao }
+                phone: { type: string, example: '+91 98765 43210' }
+                goal: { type: string, enum: [Lose weight, Build muscle, Get fit and active, Train for a sport] }
+                plan: { type: string, enum: [Not sure yet, Basic, Pro, Elite] }
+                preferred_time: { type: string, enum: [Morning (6 to 10 am), Afternoon (12 to 4 pm), Evening (5 to 10 pm)] }
+      responses:
+        '201': { description: Created }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { description: Too many requests }
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Create a member account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, phone, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                phone: { type: string }
+                password: { type: string, minLength: 8 }
+                plan_id: { type: integer, nullable: true }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in and get a token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '401': { description: Wrong email or password, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current token
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /me:
+    get:
+      tags: [Auth]
+      summary: The logged-in member
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Member' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /bookings:
+    get:
+      tags: [Bookings]
+      summary: My upcoming classes
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Booking' } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Bookings]
+      summary: Book the next session of a timetable slot
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schedule_id]
+              properties:
+                schedule_id: { type: integer, example: 1 }
+      responses:
+        '201': { description: Booked }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Slot not found }
+        '409': { description: Class full or already booked, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /bookings/{id}:
+    delete:
+      tags: [Bookings]
+      summary: Cancel one of my bookings
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Cancelled }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not one of my bookings }

@@ -1,0 +1,15 @@
+[data-bs-theme='dark'] {
+  --bs-body-bg: #0a0a0b;
+  --bs-tertiary-bg: #161618;
+  --bs-border-color: rgba(255, 255, 255, 0.1);
+}
+.card { --bs-card-bg: #161618; }
+.text-accent { color: #ff4b1f; }
+.btn-accent { --bs-btn-bg: #ff4b1f; --bs-btn-color: #0a0a0b; --bs-btn-hover-bg: #ff6a3d; --bs-btn-hover-color: #0a0a0b; --bs-btn-active-bg: #e63d12; --bs-btn-active-color: #fff; font-weight: 600; }
+.stat { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+.table { --bs-table-bg: transparent; white-space: nowrap; }
+.status-select { min-width: 130px; }
+.nav-tabs .nav-link.active { --bs-nav-tabs-link-active-bg: #161618; }
+.empty { display: none; }
+.admin-toast { display: none; position: fixed; right: 20px; bottom: 20px; z-index: 1080; padding: 10px 16px; border-radius: 10px; background: #ff4b1f; color: #fff; font-weight: 600; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
+.admin-toast.is-error { background: #fb7185; }
