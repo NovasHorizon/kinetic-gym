@@ -4,6 +4,9 @@ A bold, animation-heavy gym website built for phones first, on a Laravel + MySQL
 
 ![CI](https://github.com/NovasHorizon/kinetic-gym/actions/workflows/ci.yml/badge.svg)
 
+**Live:** [Website](https://kinetic-gym-alpha.vercel.app) · [API](https://kinetic-api-vlgp.onrender.com/api/plans) · [Admin panel](https://kinetic-api-vlgp.onrender.com/admin) · [API docs](https://kinetic-api-vlgp.onrender.com/docs)
+(free hosting: the API sleeps when idle, so the first request can take about a minute)
+
 ![Hero](docs/screenshots/hero.jpg)
 
 ## What makes the frontend different
